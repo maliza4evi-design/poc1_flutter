@@ -1,0 +1,15 @@
+include ':app'
+
+def flutterProjectRoot = rootProject.projectDir.parentFile.toPath()
+
+def flutterSdkPath = project.hasProperty('flutter.sdk') ? project.property('flutter.sdk') : System.getenv('FLUTTER_SDK_PATH')
+if (flutterSdkPath == null) {
+    throw new GradleException("Flutter SDK path not found. Set flutter.sdk in local.properties or FLUTTER_SDK_PATH environment variable.")
+}
+
+def flutterGradleScript = flutterSdkPath.toString() + '/packages/flutter_tools/gradle/flutter.gradle'
+if (!file(flutterGradleScript).exists()) {
+    throw new GradleException("Flutter gradle script not found at $flutterGradleScript")
+}
+
+apply from: flutterGradleScript

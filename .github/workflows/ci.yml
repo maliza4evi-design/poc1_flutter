@@ -1,0 +1,191 @@
+name: PoC-1A CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.19.6'
+  JAVA_VERSION: '17'
+
+jobs:
+  analyze:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: ./poc1_flutter
+
+      - name: Run flutter analyze
+        run: flutter analyze --no-fatal-infos
+        working-directory: ./poc1_flutter
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: ./poc1_flutter
+
+      - name: Generate mocks
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: ./poc1_flutter
+
+      - name: Run tests
+        run: flutter test --coverage --reporter=github
+        working-directory: ./poc1_flutter
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./poc1_flutter/coverage/lcov.info
+          flags: unittests
+
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [analyze, test]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: ./poc1_flutter
+
+      - name: Configure Android signing (debug)
+        run: |
+          mkdir -p ~/.android
+          echo "key.store=debug.keystore" > ~/.android/debug.keystore.properties
+          echo "key.alias=androiddebugkey" >> ~/.android/debug.keystore.properties
+          echo "key.store.password=android" >> ~/.android/debug.keystore.properties
+          echo "key.alias.password=android" >> ~/.android/debug.keystore.properties
+
+      - name: Build Debug APK
+        run: flutter build apk --debug --split-per-abi
+        working-directory: ./poc1_flutter
+
+      - name: Build Release APK (unsigned)
+        run: flutter build apk --release --split-per-abi
+        working-directory: ./poc1_flutter
+
+      - name: Verify APKs
+        run: |
+          echo "Debug APKs:"
+          ls -la build/app/outputs/flutter-apk/
+          echo "Release APKs:"
+          ls -la build/app/outputs/flutter-apk/
+
+      - name: Upload Debug APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apks
+          path: |
+            build/app/outputs/flutter-apk/app-*-debug.apk
+          retention-days: 30
+
+      - name: Upload Release APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apks
+          path: |
+            build/app/outputs/flutter-apk/app-*-release.apk
+          retention-days: 30
+
+  build-aab:
+    name: Build Android App Bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [analyze, test]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: ./poc1_flutter
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+        working-directory: ./poc1_flutter
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [analyze, test, build-android, build-aab]
+    if: always()
+    steps:
+      - name: Print status
+        run: |
+          echo "=== Build Summary ==="
+          echo "Analysis: ${{ needs.analyze.result }}"
+          echo "Tests: ${{ needs.test.result }}"
+          echo "Android APK: ${{ needs.build-android.result }}"
+          echo "Android AAB: ${{ needs.build-aab.result }}"
+          if [[ "${{ needs.analyze.result }}" != "success" || "${{ needs.test.result }}" != "success" || "${{ needs.build-android.result }}" != "success" ]]; then
+            echo "::error::One or more jobs failed"
+            exit 1
+          fi

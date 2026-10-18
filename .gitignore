@@ -1,0 +1,72 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+*.dart_tool/
+*.packages
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+*.so
+local.properties
+.gradle/
+build/
+*.iml
+*.ipr
+*.iws
+*.orig
+.gradle/
+/local.properties
+*.keystore
+*.jks
+*.keystore.properties
+
+# iOS
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Flutter/Generated.xcconfig
+ios/.generated/
+ios/Pods/
+ios/Podfile.lock
+*.xcworkspace
+*.xcworkspace/*
+*.xcodeproj/*
+*.xcuserstate
+*.xcscmblueprint
+*.xcscheme
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+*.lcov
+
+# Environment
+.env
+.env.local
+*.env
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+*.dSYM/
+build/
+dist/
+
+# Temp
+tmp/
+temp/
+*.tmp
