@@ -11,7 +11,7 @@ const String SERVICE_ID = 'com.example.poc1_flutter.chat';
 const String STRATEGY = 'P2P_CLUSTER';
 
 class NearbyService {
-  final Nearby _nearby = Nearby();
+  final NearbyConnections _nearby = NearbyConnections();
   final StreamController<PeerDevice> _discoveredPeerController = StreamController.broadcast();
   final StreamController<ConnectionState> _stateController = StreamController.broadcast();
   final StreamController<ChatMessage> _messageController = StreamController.broadcast();
@@ -44,7 +44,7 @@ class NearbyService {
         return false;
       }
 
-      await _nearby.init(
+      await _nearby.initialize(
         serviceId: SERVICE_ID,
         strategy: Strategy.P2P_CLUSTER,
         onConnectionInitiated: _onConnectionInitiated,
@@ -244,14 +244,14 @@ class NearbyService {
   }
 
   void _onConnectionResult(String endpointId, Status status) {
-    if (status.isSuccess) {
+    if (status == Status.success) {
       _log('Connected to $endpointId');
       _connectedEndpointId = endpointId;
       _localEndpointId = endpointId;
       _updateState(ConnectionState.connected);
     } else {
-      _log('Connection failed: ${status.description}', level: 900);
-      _errorController.add('Connection failed: ${status.description}');
+      _log('Connection failed: $status', level: 900);
+      _errorController.add('Connection failed: $status');
       _updateState(ConnectionState.error);
     }
   }
@@ -267,7 +267,7 @@ class NearbyService {
 
   void _onPayloadReceived(String endpointId, Payload payload) {
     try {
-      if (payload.type == PayloadType.BYTES) {
+      if (payload.type == PayloadType.bytes) {
         final data = utf8.decode(payload.bytes!);
         final json = jsonDecode(data) as Map<String, dynamic>;
         final message = ChatMessage.fromJson(json).copyWith(isSent: false);
@@ -280,9 +280,9 @@ class NearbyService {
   }
 
   void _onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
-    if (update.status == PayloadTransferStatus.SUCCESS) {
+    if (update.status == PayloadTransferStatus.success) {
       _log('Payload delivered to $endpointId');
-    } else if (update.status == PayloadTransferStatus.FAILURE) {
+    } else if (update.status == PayloadTransferStatus.failure) {
       _log('Payload failed to $endpointId', level: 900);
     }
   }
