@@ -29,11 +29,9 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-        working-directory: ./poc1_flutter
 
       - name: Run flutter analyze
         run: flutter analyze --no-fatal-infos
-        working-directory: ./poc1_flutter
 
   test:
     name: Unit Tests
@@ -52,20 +50,17 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-        working-directory: ./poc1_flutter
 
       - name: Generate mocks
         run: dart run build_runner build --delete-conflicting-outputs
-        working-directory: ./poc1_flutter
 
       - name: Run tests
         run: flutter test --coverage --reporter=github
-        working-directory: ./poc1_flutter
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
-          files: ./poc1_flutter/coverage/lcov.info
+          files: coverage/lcov.info
           flags: unittests
 
   build-android:
@@ -93,7 +88,6 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-        working-directory: ./poc1_flutter
 
       - name: Configure Android signing (debug)
         run: |
@@ -105,11 +99,9 @@ jobs:
 
       - name: Build Debug APK
         run: flutter build apk --debug --split-per-abi
-        working-directory: ./poc1_flutter
 
       - name: Build Release APK (unsigned)
         run: flutter build apk --release --split-per-abi
-        working-directory: ./poc1_flutter
 
       - name: Verify APKs
         run: |
@@ -159,11 +151,9 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-        working-directory: ./poc1_flutter
 
       - name: Build App Bundle
         run: flutter build appbundle --release
-        working-directory: ./poc1_flutter
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
